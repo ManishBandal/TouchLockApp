@@ -9,6 +9,7 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
+import com.example.touchlock.R
 
 class TouchLockOverlay(private val context: Context, private val onUnlock: () -> Unit) {
 

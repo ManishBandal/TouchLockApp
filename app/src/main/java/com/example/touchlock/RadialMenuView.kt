@@ -14,6 +14,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import kotlin.math.cos
 import kotlin.math.sin
+import com.example.touchlock.R
 
 class RadialMenuView(context: Context, private val callbacks: RadialMenuCallbacks) : FrameLayout(context) {
 
