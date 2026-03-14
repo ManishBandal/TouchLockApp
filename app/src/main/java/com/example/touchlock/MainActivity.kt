@@ -3,13 +3,16 @@ package com.example.touchlock
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit val permissionManager: PermissionManager
+    private lateinit var permissionManager: PermissionManager
+    private var isServiceRunning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,24 +20,54 @@ class MainActivity : AppCompatActivity() {
 
         permissionManager = PermissionManager(this)
 
-        val btnStart = findViewById<Button>(R.id.btnStart)
-        val btnStop = findViewById<Button>(R.id.btnStop)
+        val btnEnable = findViewById<MaterialButton>(R.id.btnEnable)
 
-        // Update instructions for radial menu
-        val instructionsTextView = findViewById<android.widget.TextView>(R.id.instructionsText)
-        instructionsTextView?.text = "Press Start to launch the floating control button."
+        // Set up quick settings display
+        setupQuickSettings()
 
-        btnStart.setOnClickListener {
-            if (permissionManager.hasOverlayPermission()) {
-                startFloatingMenuService()
+        btnEnable.setOnClickListener {
+            if (isServiceRunning) {
+                stopFloatingService()
+                btnEnable.text = getString(R.string.btn_enable_floating_menu)
+                btnEnable.setIconResource(R.drawable.ic_power)
+                isServiceRunning = false
             } else {
-                permissionManager.requestOverlayPermission()
+                if (permissionManager.hasOverlayPermission()) {
+                    startFloatingService()
+                    btnEnable.text = getString(R.string.btn_disable_floating_menu)
+                    btnEnable.setIconResource(R.drawable.ic_close)
+                    isServiceRunning = true
+                } else {
+                    permissionManager.requestOverlayPermission(this)
+                }
             }
         }
+    }
 
-        btnStop.setOnClickListener {
-            stopFloatingMenuService()
-        }
+    private fun setupQuickSettings() {
+        // Sensitivity card
+        val qsSensitivity = findViewById<android.view.View>(R.id.qsSensitivity)
+        qsSensitivity?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_fingerprint)
+        qsSensitivity?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_sensitivity)
+        qsSensitivity?.findViewById<TextView>(R.id.qsSubtitle)?.text = "Medium (0.5s)"
+
+        // Haptics card
+        val qsHaptics = findViewById<android.view.View>(R.id.qsHaptics)
+        qsHaptics?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_fingerprint)
+        qsHaptics?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_haptics)
+        qsHaptics?.findViewById<TextView>(R.id.qsSubtitle)?.text = "Enabled"
+
+        // Opacity card
+        val qsOpacity = findViewById<android.view.View>(R.id.qsOpacity)
+        qsOpacity?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_fingerprint)
+        qsOpacity?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_opacity)
+        qsOpacity?.findViewById<TextView>(R.id.qsSubtitle)?.text = "40% Alpha"
+
+        // Auto-Lock card
+        val qsAutoLock = findViewById<android.view.View>(R.id.qsAutoLock)
+        qsAutoLock?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_lock)
+        qsAutoLock?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_auto_lock)
+        qsAutoLock?.findViewById<TextView>(R.id.qsSubtitle)?.text = "Proximity only"
     }
 
     @Deprecated("Deprecated in Java")
@@ -42,17 +75,18 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == PermissionManager.OVERLAY_PERMISSION_REQ_CODE) {
             if (permissionManager.hasOverlayPermission()) {
-                startFloatingMenuService()
+                startFloatingService()
+                isServiceRunning = true
+                val btnEnable = findViewById<MaterialButton>(R.id.btnEnable)
+                btnEnable.text = getString(R.string.btn_disable_floating_menu)
+                btnEnable.setIconResource(R.drawable.ic_close)
             } else {
-                Toast.makeText(this, "Permission denied. App cannot work.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Permission denied. Cannot show floating menu.", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun startFloatingMenuService() {
-        // We will stop the old overlay service if it's running just in case
-        stopService(Intent(this, OverlayService::class.java))
-        
+    private fun startFloatingService() {
         val intent = Intent(this, FloatingMenuService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -61,10 +95,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun stopFloatingMenuService() {
-        val intent = Intent(this, FloatingMenuService::class.java)
-        stopService(intent)
-        // Also stop legacy service just in case
-        stopService(Intent(this, OverlayService::class.java))
+    private fun stopFloatingService() {
+        stopService(Intent(this, FloatingMenuService::class.java))
     }
 }

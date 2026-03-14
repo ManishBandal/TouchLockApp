@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#f49d25",
+              "background-light": "#f8f7f5",
+              "background-dark": "#221a10",
+            },
+            fontFamily: {
+              "display": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<title>Active Touch Lock Screen</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<!-- Main Container: Full Screen Lock View -->
+<div class="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- Background Image with Overlay -->
+<div class="absolute inset-0 z-0">
+<img alt="Abstract fluid background" class="h-full w-full object-cover opacity-40 dark:opacity-20 blur-sm" data-alt="Modern abstract fluid purple and orange gradient" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBL5GjSBY1cqJEwudsbR5mE_-pXTHssW_Qtip0t8tDtIaMMiiIGoYZGEudfRJY0tvKgxTaO1caq7fppBe6U6CD3sjvziKzCYuXLngp_qQTmXTSWAEKA88Qv4hksHMn3aWUWdIcuQjdTU3KrESLcyta8O0zSws6YdOe69_xHeo_LzL2m_nH23yqHWkGUV-TvNKa2Mxuxrz4mfWzLsGe85ebSNGLOZ2_wsNt-xtE2AAAeTzeDMV05oEEJKgPSU_nR7JKa4sCS1Ig97nQ"/>
+<div class="absolute inset-0 bg-background-light/60 dark:bg-background-dark/80 backdrop-blur-md"></div>
+</div>
+<!-- Top Status Bar (Minimalist) -->
+<div class="relative z-10 flex w-full items-center justify-between px-8 pt-12">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xl">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-xl">wifi</span>
+</div>
+<div class="text-lg font-semibold">9:41</div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium">85%</span>
+<span class="material-symbols-outlined text-2xl rotate-90">battery_full</span>
+</div>
+</div>
+<!-- Central Lock Content -->
+<div class="relative z-10 flex flex-1 flex-col items-center justify-center px-6">
+<div class="mb-8 flex flex-col items-center">
+<div class="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-900/5 dark:bg-slate-100/10 backdrop-blur-xl border border-slate-900/10 dark:border-slate-100/10">
+<span class="material-symbols-outlined text-4xl text-slate-700 dark:text-slate-300">lock_open</span>
+</div>
+<h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Locked</h1>
+<p class="mt-2 text-slate-600 dark:text-slate-400">Touch to authenticate</p>
+</div>
+</div>
+<!-- The Floating Active Touch Menu Button -->
+<!-- This is the focal point: Bright, Vibrant Orange -->
+<div class="relative z-20 flex w-full flex-col items-center justify-end pb-24">
+<div class="group relative flex items-center justify-center">
+<!-- Outer Pulse/Glow -->
+<div class="absolute h-24 w-24 rounded-full bg-primary/30 blur-xl"></div>
+<!-- Main Radial Button -->
+<button class="relative flex h-20 w-20 items-center justify-center rounded-full bg-primary text-slate-900 shadow-2xl shadow-primary/40 transition-transform hover:scale-105 active:scale-95">
+<span class="material-symbols-outlined text-4xl font-bold">fingerprint</span>
+</button>
+<!-- Active Indicator Text -->
+<div class="absolute -bottom-10 flex flex-col items-center whitespace-nowrap">
+<span class="text-xs font-bold uppercase tracking-widest text-primary">Active Touch</span>
+<div class="mt-1 h-1 w-1 rounded-full bg-primary"></div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar (Minimalist Style) -->
+<div class="relative z-10 mt-auto flex w-full justify-between border-t border-slate-900/5 dark:border-slate-100/5 bg-background-light/30 dark:bg-background-dark/30 backdrop-blur-xl px-4 pb-8 pt-4">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">search</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">radio_button_checked</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">notifications</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">person</span>
+</a>
+</div>
+<!-- Visual "Swipe Up" Indicator -->
+<div class="absolute bottom-2 left-1/2 h-1.5 w-32 -translate-x-1/2 rounded-full bg-slate-900/20 dark:bg-slate-100/20"></div>
+</div>
+</body></html>

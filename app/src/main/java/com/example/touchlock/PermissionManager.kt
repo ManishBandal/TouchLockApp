@@ -6,9 +6,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 
-class PermissionManager(private val activity: AppCompatActivity) {
+class PermissionManager(private val context: Context) {
 
     companion object {
         const val OVERLAY_PERMISSION_REQ_CODE = 1000
@@ -16,20 +15,24 @@ class PermissionManager(private val activity: AppCompatActivity) {
 
     fun hasOverlayPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(activity)
+            Settings.canDrawOverlays(context)
         } else {
             true
         }
     }
 
-    fun requestOverlayPermission() {
+    fun requestOverlayPermission(context: android.app.Activity) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val intent = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${activity.packageName}")
+                Uri.parse("package:${context.packageName}")
             )
-            activity.startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
-            Toast.makeText(activity, "Please grant 'Display over other apps' permission to use the floating menu.", Toast.LENGTH_LONG).show()
+            context.startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
+            Toast.makeText(
+                context,
+                "Please grant 'Display over other apps' permission.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 }

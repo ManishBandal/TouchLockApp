@@ -1,172 +1,153 @@
 package com.example.touchlock
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
-import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import kotlin.math.cos
 import kotlin.math.sin
-import com.example.touchlock.R
 
-class RadialMenuView(context: Context, private val callbacks: RadialMenuCallbacks) : FrameLayout(context) {
+@SuppressLint("ViewConstructor")
+class RadialMenuView(
+    context: Context,
+    private val callbacks: MenuCallbacks
+) : FrameLayout(context) {
 
-    interface RadialMenuCallbacks {
+    interface MenuCallbacks {
         fun onLockClicked()
         fun onUnlockClicked()
         fun onMoveClicked()
-        fun onCloseClicked()
+        fun onPauseClicked()
     }
 
-    private var isMenuExpanded = false
-    private val radiusPx = 250 // Expansion radius in pixels
-    
-    // The main floating button
-    private val floatingButton: ImageView
-    
-    // The menu items
-    private val btnLock: ImageView
-    private val btnUnlock: ImageView
-    private val btnMove: ImageView
-    private val btnClose: ImageView
+    private var isExpanded = false
+    private val menuRadius = 220f // px from center
+    private val mainButtonSize = 160
+    private val itemButtonSize = 120
 
+    private val mainButton: ImageView
     private val menuItems = mutableListOf<ImageView>()
 
+    // Menu item data: icon resource, tint color
+    private data class MenuItem(val iconRes: Int, val bgColor: Int)
+    private val menuData = listOf(
+        MenuItem(R.drawable.ic_lock, Color.parseColor("#f49d25")),     // Lock
+        MenuItem(R.drawable.ic_unlock, Color.parseColor("#43A047")),   // Unlock
+        MenuItem(R.drawable.ic_move, Color.parseColor("#1E88E5")),     // Move
+        MenuItem(R.drawable.ic_close, Color.parseColor("#757575"))     // Pause
+    )
+
     init {
-        // Set up the main floating button
-        floatingButton = createButton(R.drawable.ic_floating_button, 150)
-        floatingButton.setOnClickListener {
-            toggleMenu()
+        // Create menu item buttons first (below main button in z-order)
+        for (data in menuData) {
+            val btn = ImageView(context).apply {
+                setImageResource(data.iconRes)
+                setPadding(24, 24, 24, 24)
+                val bg = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(data.bgColor)
+                }
+                background = bg
+                elevation = 8f
+                visibility = View.GONE
+                alpha = 0f
+                scaleX = 0f
+                scaleY = 0f
+            }
+            val lp = LayoutParams(itemButtonSize, itemButtonSize).apply {
+                gravity = Gravity.CENTER
+            }
+            addView(btn, lp)
+            menuItems.add(btn)
         }
 
-        // Set up menu items
-        btnLock = createButton(R.drawable.ic_lock, 120, Color.parseColor("#E53935")) // Red
-        btnUnlock = createButton(R.drawable.ic_unlock, 120, Color.parseColor("#43A047")) // Green
-        btnMove = createButton(R.drawable.ic_move, 120, Color.parseColor("#1E88E5")) // Blue
-        btnClose = createButton(R.drawable.ic_close, 120, Color.parseColor("#757575")) // Grey
+        // Set click listeners
+        menuItems[0].setOnClickListener { callbacks.onLockClicked(); collapse() }
+        menuItems[1].setOnClickListener { callbacks.onUnlockClicked(); collapse() }
+        menuItems[2].setOnClickListener { callbacks.onMoveClicked(); collapse() }
+        menuItems[3].setOnClickListener { callbacks.onPauseClicked(); collapse() }
 
-        btnLock.setOnClickListener { callbacks.onLockClicked(); collapseMenu() }
-        btnUnlock.setOnClickListener { callbacks.onUnlockClicked(); collapseMenu() }
-        btnMove.setOnClickListener { callbacks.onMoveClicked(); collapseMenu() }
-        btnClose.setOnClickListener { callbacks.onCloseClicked(); collapseMenu() }
-
-        menuItems.addAll(listOf(btnLock, btnMove, btnUnlock, btnClose))
-
-        // Add views. Menu items first so they are under the main button
-        menuItems.forEach { 
-            it.visibility = View.GONE
-            it.alpha = 0f
-            addView(it) 
+        // Create main floating button (on top)
+        mainButton = ImageView(context).apply {
+            setImageResource(R.drawable.ic_floating_button)
+            setPadding(32, 32, 32, 32)
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#f49d25"))
+            }
+            background = bg
+            elevation = 16f
         }
-        addView(floatingButton)
-    }
-
-    private fun createButton(iconRes: Int, sizePx: Int, bgColor: Int = Color.TRANSPARENT): ImageView {
-        val imageView = ImageView(context)
-        imageView.setImageResource(iconRes)
-        imageView.setPadding(24, 24, 24, 24)
-        
-        if (bgColor != Color.TRANSPARENT) {
-            val bg = GradientDrawable()
-            bg.shape = GradientDrawable.OVAL
-            bg.setColor(bgColor)
-            imageView.background = bg
-        }
-
-        val params = LayoutParams(sizePx, sizePx).apply {
+        val mainLp = LayoutParams(mainButtonSize, mainButtonSize).apply {
             gravity = Gravity.CENTER
         }
-        imageView.layoutParams = params
-        imageView.elevation = 10f
-        return imageView
+        addView(mainButton, mainLp)
+
+        mainButton.setOnClickListener { toggle() }
     }
 
-    private fun toggleMenu() {
-        if (isMenuExpanded) {
-            collapseMenu()
-        } else {
-            expandMenu()
-        }
+    private fun toggle() {
+        if (isExpanded) collapse() else expand()
     }
 
-    fun expandMenu() {
-        if (isMenuExpanded) return
-        isMenuExpanded = true
+    fun expand() {
+        if (isExpanded) return
+        isExpanded = true
 
-        val animatorSet = AnimatorSet()
-        val animators = mutableListOf<Animator>()
-
-        val angleStep = Math.PI * 2 / menuItems.size
+        val angleStep = (2.0 * Math.PI) / menuItems.size
 
         for ((index, item) in menuItems.withIndex()) {
+            val angle = index * angleStep - (Math.PI / 2.0) // start from top
+            val targetX = (menuRadius * cos(angle)).toFloat()
+            val targetY = (menuRadius * sin(angle)).toFloat()
+
             item.visibility = View.VISIBLE
-            
-            // Start from center
             item.translationX = 0f
             item.translationY = 0f
             item.alpha = 0f
             item.scaleX = 0f
             item.scaleY = 0f
 
-            // Calculate target positions based on angle
-            val angle = index * angleStep - (Math.PI / 2) // Start from top
-            val targetX = (radiusPx * cos(angle)).toFloat()
-            val targetY = (radiusPx * sin(angle)).toFloat()
-
-            val moveX = ObjectAnimator.ofFloat(item, "translationX", 0f, targetX)
-            val moveY = ObjectAnimator.ofFloat(item, "translationY", 0f, targetY)
-            val alpha = ObjectAnimator.ofFloat(item, "alpha", 0f, 1f)
-            val scaleX = ObjectAnimator.ofFloat(item, "scaleX", 0f, 1f)
-            val scaleY = ObjectAnimator.ofFloat(item, "scaleY", 0f, 1f)
-
-            animators.addAll(listOf(moveX, moveY, alpha, scaleX, scaleY))
+            item.animate()
+                .translationX(targetX)
+                .translationY(targetY)
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(300)
+                .setStartDelay((index * 30).toLong())
+                .start()
         }
 
-        animatorSet.playTogether(animators)
-        animatorSet.interpolator = OvershootInterpolator()
-        animatorSet.duration = 400
-        animatorSet.start()
-        
-        // Spin the main button a bit
-        ObjectAnimator.ofFloat(floatingButton, "rotation", 0f, 45f).setDuration(300).start()
+        mainButton.animate()
+            .rotation(45f)
+            .setDuration(250)
+            .start()
     }
 
-    fun collapseMenu() {
-        if (!isMenuExpanded) return
-        isMenuExpanded = false
-
-        val animatorSet = AnimatorSet()
-        val animators = mutableListOf<Animator>()
+    fun collapse() {
+        if (!isExpanded) return
+        isExpanded = false
 
         for (item in menuItems) {
-            val moveX = ObjectAnimator.ofFloat(item, "translationX", item.translationX, 0f)
-            val moveY = ObjectAnimator.ofFloat(item, "translationY", item.translationY, 0f)
-            val alpha = ObjectAnimator.ofFloat(item, "alpha", 1f, 0f)
-            val scaleX = ObjectAnimator.ofFloat(item, "scaleX", 1f, 0f)
-            val scaleY = ObjectAnimator.ofFloat(item, "scaleY", 1f, 0f)
-
-            animators.addAll(listOf(moveX, moveY, alpha, scaleX, scaleY))
+            item.animate()
+                .translationX(0f)
+                .translationY(0f)
+                .alpha(0f)
+                .scaleX(0f)
+                .scaleY(0f)
+                .setDuration(200)
+                .withEndAction { item.visibility = View.GONE }
+                .start()
         }
 
-        animatorSet.playTogether(animators)
-        animatorSet.duration = 250
-        animatorSet.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-                for (item in menuItems) {
-                    item.visibility = View.GONE
-                }
-            }
-        })
-        animatorSet.start()
-        
-        // Restore main button rotation
-        ObjectAnimator.ofFloat(floatingButton, "rotation", 45f, 0f).setDuration(250).start()
+        mainButton.animate()
+            .rotation(0f)
+            .setDuration(200)
+            .start()
     }
 }

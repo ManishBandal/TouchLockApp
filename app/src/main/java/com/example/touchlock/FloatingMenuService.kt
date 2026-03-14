@@ -18,48 +18,44 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.example.touchlock.R
 
-class FloatingMenuService : Service(), RadialMenuView.RadialMenuCallbacks {
+class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
 
-    private val CHANNEL_ID = "FloatingMenuChannel"
-    private val NOTIFICATION_ID = 2
-    
+    companion object {
+        private const val CHANNEL_ID = "TouchLockChannel"
+        private const val NOTIFICATION_ID = 101
+        private const val PREFS_NAME = "TouchLockPrefs"
+        private const val PREF_X = "btn_x"
+        private const val PREF_Y = "btn_y"
+    }
+
     private var windowManager: WindowManager? = null
     private var radialMenuView: RadialMenuView? = null
     private var touchLockOverlay: TouchLockOverlay? = null
-    
     private lateinit var layoutParams: WindowManager.LayoutParams
-    private lateinit var sharedPreferences: SharedPreferences
-
-    private val PREFS_NAME = "TouchLockPrefs"
-    private val PREF_X = "FloatingButtonX"
-    private val PREF_Y = "FloatingButtonY"
+    private lateinit var prefs: SharedPreferences
 
     private var initialX = 0
     private var initialY = 0
     private var initialTouchX = 0f
     private var initialTouchY = 0f
-    private var isDraggingEnabled = false
+    private var isDragging = false
 
     override fun onCreate() {
         super.onCreate()
-        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        
+
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
-        
-        setupFloatingMenu()
+        startForeground(NOTIFICATION_ID, buildNotification())
+        addFloatingMenu()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
         super.onDestroy()
@@ -67,60 +63,64 @@ class FloatingMenuService : Service(), RadialMenuView.RadialMenuCallbacks {
         touchLockOverlay?.remove()
     }
 
+    // --- Notification ---
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
+            val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Floating Menu Service Channel",
+                "Touch Lock Service",
                 NotificationManager.IMPORTANCE_LOW
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(serviceChannel)
+            val nm = getSystemService(NotificationManager::class.java)
+            nm?.createNotificationChannel(channel)
         }
     }
 
-    private fun createNotification(): Notification {
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
+    private fun buildNotification(): Notification {
+        val pi = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Touch Lock Active")
-            .setContentText("Tap to manage touch lock")
-            .setSmallIcon(android.R.drawable.ic_secure)
-            .setContentIntent(pendingIntent)
+            .setContentTitle("Touch Lock Running")
+            .setContentText("Tap to open controls")
+            .setSmallIcon(R.drawable.ic_lock)
+            .setContentIntent(pi)
             .setOngoing(true)
             .build()
     }
 
+    // --- Floating Menu ---
+
     @SuppressLint("ClickableViewAccessibility")
-    private fun setupFloatingMenu() {
+    private fun addFloatingMenu() {
         radialMenuView = RadialMenuView(this, this)
-        
-        // Large box so the expanded menu isn't clipped
+
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
         layoutParams = WindowManager.LayoutParams(
-            800, 800,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) 
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY 
-            else 
-                WindowManager.LayoutParams.TYPE_PHONE,
+            700, 700,
+            type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
-        )
-        
-        layoutParams.gravity = Gravity.TOP or Gravity.START
-        layoutParams.x = sharedPreferences.getInt(PREF_X, 0)
-        layoutParams.y = sharedPreferences.getInt(PREF_Y, 200)
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = prefs.getInt(PREF_X, 0)
+            y = prefs.getInt(PREF_Y, 200)
+        }
 
-        radialMenuView?.setOnTouchListener { view, event ->
-            if (isDraggingEnabled) {
+        radialMenuView?.setOnTouchListener { _, event ->
+            if (isDragging) {
                 handleDrag(event)
             } else {
-                false // Let the button handle clicks
+                false
             }
         }
 
@@ -147,25 +147,17 @@ class FloatingMenuService : Service(), RadialMenuView.RadialMenuCallbacks {
                 return true
             }
             MotionEvent.ACTION_UP -> {
-                // Snap to edges horizontally
-                val displayMetrics = resources.displayMetrics
-                val screenWidth = displayMetrics.widthPixels
-                
-                if (layoutParams.x > screenWidth / 2) {
-                    layoutParams.x = screenWidth // right edge
-                } else {
-                    layoutParams.x = 0 // left edge
-                }
+                // Snap to nearest edge
+                val screenWidth = resources.displayMetrics.widthPixels
+                layoutParams.x = if (layoutParams.x > screenWidth / 2) screenWidth else 0
                 windowManager?.updateViewLayout(radialMenuView, layoutParams)
 
-                // Save persistence
-                sharedPreferences.edit()
+                prefs.edit()
                     .putInt(PREF_X, layoutParams.x)
                     .putInt(PREF_Y, layoutParams.y)
                     .apply()
-                
-                // Disable drag mode after dragging once
-                isDraggingEnabled = false
+
+                isDragging = false
                 Toast.makeText(this, "Position saved", Toast.LENGTH_SHORT).show()
                 return true
             }
@@ -184,34 +176,38 @@ class FloatingMenuService : Service(), RadialMenuView.RadialMenuCallbacks {
         }
     }
 
-    // Radial Menu Callbacks
+    // --- Menu Callbacks ---
+
     override fun onLockClicked() {
         if (touchLockOverlay == null) {
             touchLockOverlay = TouchLockOverlay(this) {
-                // Callback when triple-tap is detected
+                // Unlock callback
                 touchLockOverlay?.remove()
                 touchLockOverlay = null
-                
-                // Show the floating menu again if we hid it
                 radialMenuView?.visibility = View.VISIBLE
             }
         }
-        
         touchLockOverlay?.show()
-        // Hide the floating menu while screen is locked
         radialMenuView?.visibility = View.GONE
     }
 
     override fun onUnlockClicked() {
-        Toast.makeText(this, "Screen is already unlocked", Toast.LENGTH_SHORT).show()
+        if (touchLockOverlay != null) {
+            touchLockOverlay?.remove()
+            touchLockOverlay = null
+            radialMenuView?.visibility = View.VISIBLE
+            Toast.makeText(this, "Touch Lock Disabled", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Screen is already unlocked", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onMoveClicked() {
-        isDraggingEnabled = true
+        isDragging = true
         Toast.makeText(this, "Drag the button to move it", Toast.LENGTH_SHORT).show()
     }
 
-    override fun onCloseClicked() {
+    override fun onPauseClicked() {
         stopSelf()
     }
 }

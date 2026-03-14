@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Radial Touch Lock Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f49d25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221a10",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .radial-gradient-bg {
+            background: radial-gradient(circle at center, #f49d25 0%, transparent 70%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-white dark:bg-background-dark group/design-root overflow-x-hidden">
+<!-- Top Navigation -->
+<div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+<div class="flex items-center gap-2">
+<div class="bg-primary rounded-lg p-1 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl" data-icon="lock">lock</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em]">Radial Touch Lock</h2>
+</div>
+<div class="flex w-12 items-center justify-end">
+<button class="text-primary text-base font-bold leading-normal tracking-[0.015em] shrink-0 hover:opacity-80 transition-opacity">Skip</button>
+</div>
+</div>
+<!-- Carousel Content Area -->
+<div class="flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-lg mx-auto w-full">
+<!-- Step 1 View (Active) -->
+<div class="w-full flex flex-col items-center">
+<div class="w-full aspect-square max-w-xs relative mb-12">
+<div class="absolute inset-0 bg-primary/10 rounded-full animate-pulse"></div>
+<div class="absolute inset-4 border-2 border-dashed border-primary/30 rounded-full"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="relative w-48 h-48 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700">
+<!-- Simulated Screen Content -->
+<div class="absolute top-4 left-4 right-4 h-2 bg-slate-100 dark:bg-slate-700 rounded-full"></div>
+<div class="absolute top-8 left-4 w-1/2 h-2 bg-slate-100 dark:bg-slate-700 rounded-full"></div>
+<div class="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-5xl" data-icon="gesture">gesture</span>
+</div>
+<div class="absolute bottom-4 inset-x-4 flex gap-2">
+<div class="h-8 flex-1 bg-primary rounded-lg"></div>
+<div class="h-8 w-8 bg-slate-100 dark:bg-slate-700 rounded-lg"></div>
+</div>
+</div>
+<!-- Radial Overlay Graphic -->
+<div class="absolute w-64 h-64 border-[12px] border-primary/40 rounded-full flex items-center justify-center pointer-events-none">
+<div class="w-full h-full rounded-full border-[1px] border-primary flex items-center justify-center">
+<div class="absolute top-0 w-4 h-4 bg-primary rounded-full shadow-lg shadow-primary/50"></div>
+</div>
+</div>
+</div>
+</div>
+<h1 class="text-slate-900 dark:text-slate-100 tracking-tight text-3xl font-extrabold leading-tight text-center mb-4">Total Control in One Swipe</h1>
+<p class="text-slate-600 dark:text-slate-400 text-base font-normal leading-relaxed text-center mb-8">
+                    Lock your screen instantly with our unique radial gesture system. No more accidental touches while watching your favorite videos.
+                </p>
+</div>
+<!-- Page Indicators -->
+<div class="flex w-full flex-row items-center justify-center gap-3 mb-8">
+<div class="h-2.5 w-8 rounded-full bg-primary"></div>
+<div class="h-2.5 w-2.5 rounded-full bg-primary/20"></div>
+<div class="h-2.5 w-2.5 rounded-full bg-primary/20"></div>
+</div>
+<!-- Actions -->
+<div class="w-full space-y-3">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition-all">
+                    Next Step
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Background Decor (Subtle) -->
+<div class="fixed top-1/4 -right-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+<div class="fixed bottom-1/4 -left-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Footer Info -->
+<div class="p-6 text-center">
+<div class="flex justify-center items-center gap-4 py-4">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark bg-slate-200 overflow-hidden">
+<img alt="User" data-alt="Portrait of a smiling young woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlzgZ6FPjYzwRJ9o1lElA4d1jVquu98duLH5YrRLQeHFboX8yJk5bKpGrM6RMNhLuHSSHx876tR3TZ-ZjiMwWR6n_J-uhmpIrd87CyEmnXTdvnCpAZg388o3_-FascN5WEtPTZHsoaVmFJoQ5BksttVzZnnkNfpEH6LeBO4nuse6ZXqzClb0n_PHRxBW_tz5xKZMpQqZJtR56AXox33s3tKJVVPxVHl8Yqz412ZX6alINQqjwlCerhGrtkbVktN4uY3cSLWvOO8fc"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark bg-slate-200 overflow-hidden">
+<img alt="User" data-alt="Portrait of a smiling professional man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAy-hOUvafq8R8quoAwcLQvTA_YoxSyq_IWnTpZ350QkE2WA4X5NTUTuJGs73G89mbj2z1DazIdqWG4rycDJgbZYH-U3b9Vaa5v-x3QHRjscYqEzr1C7iwplTKQMfp120dhuflvx-URXUHnodfPTskvoWqGjpBx-km6ApLJFeuJdaNFFCnP_mUKEQrkC3lEpyMkWi8MD25qgc4Irv39ZuSGKxdxJG_Sde9wV3eLWNjQ9xmq5tGv5j0q473N13XcI5Q3CLH4L979j0U"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark bg-primary flex items-center justify-center">
+<span class="text-[10px] text-white font-bold">+2k</span>
+</div>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Joined by 20,000+ happy users</p>
+</div>
+</div>
+</div>
+<!-- Hidden Components for Context (Not rendered in main view but available for step logic) -->
+<!-- Feature List Card Component -->
+<div class="hidden">
+<div class="flex items-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 mb-3">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-4">
+<span class="material-symbols-outlined" data-icon="video_stable">video_stable</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-slate-900 dark:text-slate-100">Video Mode</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400">Lock playback controls only</p>
+</div>
+</div>
+</div>
+</body></html>

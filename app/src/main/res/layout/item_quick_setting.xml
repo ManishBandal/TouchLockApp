@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/bg_quick_setting">
+
+    <ImageView
+        android:id="@+id/qsIcon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_lock"
+        android:contentDescription="Setting Icon" />
+
+    <TextView
+        android:id="@+id/qsTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Title"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_dark"
+        android:layout_marginTop="12dp" />
+
+    <TextView
+        android:id="@+id/qsSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Subtitle"
+        android:textSize="12sp"
+        android:textColor="@color/text_muted_dark"
+        android:layout_marginTop="2dp" />
+
+</LinearLayout>

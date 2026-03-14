@@ -1,7 +1,13 @@
 <resources>
-    <string name="app_name">Touch Lock</string>
-    <string name="start_touch_lock">Start Touch Lock</string>
-    <string name="stop_touch_lock">Stop Touch Lock</string>
-    <string name="instructions">Press Start to lock screen touches. Triple tap anywhere to unlock.</string>
-    <string name="notification_text">Touch Lock Active \u2013 Tap to return to app</string>
+    <string name="app_name">Radial Touch Lock</string>
+    <string name="title_control_hub">Radial Control</string>
+    <string name="status_locked">System Locked</string>
+    <string name="status_instruction">Tap below to activate floating controls</string>
+    <string name="btn_enable_floating_menu">Enable Floating Menu</string>
+    <string name="btn_disable_floating_menu">Disable Floating Menu</string>
+    <string name="header_quick_settings">Quick Settings</string>
+    <string name="qs_sensitivity">Sensitivity</string>
+    <string name="qs_haptics">Haptics</string>
+    <string name="qs_opacity">Opacity</string>
+    <string name="qs_auto_lock">Auto-Lock</string>
 </resources>
