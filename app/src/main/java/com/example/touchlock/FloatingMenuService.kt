@@ -13,7 +13,6 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
@@ -27,6 +26,7 @@ class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
         private const val PREFS_NAME = "TouchLockPrefs"
         private const val PREF_X = "btn_x"
         private const val PREF_Y = "btn_y"
+        const val ACTION_SERVICE_STOPPED = "com.example.touchlock.SERVICE_STOPPED"
     }
 
     private var windowManager: WindowManager? = null
@@ -34,12 +34,7 @@ class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
     private var touchLockOverlay: TouchLockOverlay? = null
     private lateinit var layoutParams: WindowManager.LayoutParams
     private lateinit var prefs: SharedPreferences
-
-    private var initialX = 0
-    private var initialY = 0
-    private var initialTouchX = 0f
-    private var initialTouchY = 0f
-    private var isDragging = false
+    private var isLocked = false
 
     override fun onCreate() {
         super.onCreate()
@@ -61,6 +56,10 @@ class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
         super.onDestroy()
         removeFloatingMenu()
         touchLockOverlay?.remove()
+
+        // Notify MainActivity that service stopped
+        val intent = Intent(ACTION_SERVICE_STOPPED)
+        sendBroadcast(intent)
     }
 
     // --- Notification ---
@@ -105,6 +104,11 @@ class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
+        // Default position: right side of screen
+        val screenWidth = resources.displayMetrics.widthPixels
+        val savedX = prefs.getInt(PREF_X, screenWidth - 200)
+        val savedY = prefs.getInt(PREF_Y, 300)
+
         layoutParams = WindowManager.LayoutParams(
             700, 700,
             type,
@@ -112,16 +116,8 @@ class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = prefs.getInt(PREF_X, 0)
-            y = prefs.getInt(PREF_Y, 200)
-        }
-
-        radialMenuView?.setOnTouchListener { _, event ->
-            if (isDragging) {
-                handleDrag(event)
-            } else {
-                false
-            }
+            x = savedX
+            y = savedY
         }
 
         try {
@@ -129,40 +125,6 @@ class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    private fun handleDrag(event: MotionEvent): Boolean {
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                initialX = layoutParams.x
-                initialY = layoutParams.y
-                initialTouchX = event.rawX
-                initialTouchY = event.rawY
-                return true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
-                layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
-                windowManager?.updateViewLayout(radialMenuView, layoutParams)
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                // Snap to nearest edge
-                val screenWidth = resources.displayMetrics.widthPixels
-                layoutParams.x = if (layoutParams.x > screenWidth / 2) screenWidth else 0
-                windowManager?.updateViewLayout(radialMenuView, layoutParams)
-
-                prefs.edit()
-                    .putInt(PREF_X, layoutParams.x)
-                    .putInt(PREF_Y, layoutParams.y)
-                    .apply()
-
-                isDragging = false
-                Toast.makeText(this, "Position saved", Toast.LENGTH_SHORT).show()
-                return true
-            }
-        }
-        return false
     }
 
     private fun removeFloatingMenu() {
@@ -176,38 +138,59 @@ class FloatingMenuService : Service(), RadialMenuView.MenuCallbacks {
         }
     }
 
+    private fun savePosition() {
+        prefs.edit()
+            .putInt(PREF_X, layoutParams.x)
+            .putInt(PREF_Y, layoutParams.y)
+            .apply()
+    }
+
     // --- Menu Callbacks ---
 
     override fun onLockClicked() {
-        if (touchLockOverlay == null) {
-            touchLockOverlay = TouchLockOverlay(this) {
-                // Unlock callback
-                touchLockOverlay?.remove()
-                touchLockOverlay = null
-                radialMenuView?.visibility = View.VISIBLE
-            }
+        if (isLocked) return
+
+        isLocked = true
+        touchLockOverlay = TouchLockOverlay(this) {
+            // Unlock callback from puzzle
+            touchLockOverlay?.remove()
+            touchLockOverlay = null
+            isLocked = false
+            radialMenuView?.visibility = View.VISIBLE
         }
         touchLockOverlay?.show()
-        radialMenuView?.visibility = View.GONE
+        // Keep radial menu visible but collapsed so user can tap Unlock
+        radialMenuView?.collapse()
     }
 
     override fun onUnlockClicked() {
-        if (touchLockOverlay != null) {
-            touchLockOverlay?.remove()
-            touchLockOverlay = null
-            radialMenuView?.visibility = View.VISIBLE
-            Toast.makeText(this, "Touch Lock Disabled", Toast.LENGTH_SHORT).show()
+        if (isLocked && touchLockOverlay != null) {
+            // Show the math puzzle
+            touchLockOverlay?.showPuzzle()
         } else {
             Toast.makeText(this, "Screen is already unlocked", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onMoveClicked() {
-        isDragging = true
-        Toast.makeText(this, "Drag the button to move it", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Drag the button to reposition", Toast.LENGTH_SHORT).show()
     }
 
     override fun onPauseClicked() {
         stopSelf()
+    }
+
+    override fun onDrag(deltaX: Int, deltaY: Int) {
+        layoutParams.x += deltaX
+        layoutParams.y += deltaY
+        try {
+            windowManager?.updateViewLayout(radialMenuView, layoutParams)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onDragEnd() {
+        savePosition()
     }
 }

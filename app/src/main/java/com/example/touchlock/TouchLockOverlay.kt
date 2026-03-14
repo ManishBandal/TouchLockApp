@@ -2,14 +2,14 @@ package com.example.touchlock
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.Toast
 
 class TouchLockOverlay(
     private val context: Context,
@@ -18,11 +18,8 @@ class TouchLockOverlay(
 
     private var windowManager: WindowManager? = null
     private var overlayView: FrameLayout? = null
-
-    private val gestureDetector = UnlockGestureDetector {
-        Toast.makeText(context, "Touch Lock Disabled", Toast.LENGTH_SHORT).show()
-        onUnlock()
-    }
+    private var mathUnlockView: MathUnlockView? = null
+    private var isPuzzleVisible = false
 
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
@@ -31,25 +28,10 @@ class TouchLockOverlay(
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
         overlayView = FrameLayout(context).apply {
-            setBackgroundColor(0x00000000) // Transparent
+            setBackgroundColor(Color.parseColor("#80000000")) // Semi-transparent black
 
-            // Lock indicator icon in the top-left
-            val icon = ImageView(context).apply {
-                setImageResource(R.drawable.ic_lock)
-                alpha = 0.5f
-            }
-            val iconLp = FrameLayout.LayoutParams(80, 80).apply {
-                gravity = Gravity.TOP or Gravity.START
-                setMargins(40, 40, 0, 0)
-            }
-            addView(icon, iconLp)
-
-            setOnTouchListener { _, event ->
-                if (event.action == MotionEvent.ACTION_DOWN) {
-                    gestureDetector.onTap()
-                }
-                true // Consume all touches
-            }
+            // Touch blocker — consumes all touches when puzzle is not visible
+            setOnTouchListener { _, _ -> true }
         }
 
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -76,7 +58,35 @@ class TouchLockOverlay(
         }
     }
 
+    fun showPuzzle() {
+        if (overlayView == null || isPuzzleVisible) return
+        isPuzzleVisible = true
+
+        mathUnlockView = MathUnlockView(context) {
+            // Puzzle solved callback
+            onUnlock()
+        }
+
+        val puzzleLp = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        overlayView?.addView(mathUnlockView, puzzleLp)
+    }
+
+    fun hidePuzzle() {
+        if (!isPuzzleVisible) return
+        isPuzzleVisible = false
+        mathUnlockView?.let { overlayView?.removeView(it) }
+        mathUnlockView = null
+    }
+
     fun remove() {
+        isPuzzleVisible = false
+        mathUnlockView = null
         overlayView?.let {
             try {
                 windowManager?.removeView(it)

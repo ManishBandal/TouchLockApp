@@ -5,9 +5,11 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -22,72 +24,110 @@ class RadialMenuView(
         fun onUnlockClicked()
         fun onMoveClicked()
         fun onPauseClicked()
+        fun onDrag(deltaX: Int, deltaY: Int)
+        fun onDragEnd()
     }
 
     private var isExpanded = false
-    private val menuRadius = 220f // px from center
+    private val menuRadius = 220f
     private val mainButtonSize = 160
     private val itemButtonSize = 120
 
-    private val mainButton: ImageView
+    val mainButton: ImageView
     private val menuItems = mutableListOf<ImageView>()
 
-    // Menu item data: icon resource, tint color
-    private data class MenuItem(val iconRes: Int, val bgColor: Int)
+    private var isDragMode = false
+    private var downX = 0f
+    private var downY = 0f
+    private var hasMoved = false
+    private val touchSlop = 15f
+
+    private data class MenuItemData(val iconRes: Int, val bgColor: Int)
     private val menuData = listOf(
-        MenuItem(R.drawable.ic_lock, Color.parseColor("#f49d25")),     // Lock
-        MenuItem(R.drawable.ic_unlock, Color.parseColor("#43A047")),   // Unlock
-        MenuItem(R.drawable.ic_move, Color.parseColor("#1E88E5")),     // Move
-        MenuItem(R.drawable.ic_close, Color.parseColor("#757575"))     // Pause
+        MenuItemData(R.drawable.ic_lock, Color.parseColor("#f49d25")),
+        MenuItemData(R.drawable.ic_unlock, Color.parseColor("#43A047")),
+        MenuItemData(R.drawable.ic_move, Color.parseColor("#1E88E5")),
+        MenuItemData(R.drawable.ic_close, Color.parseColor("#757575"))
     )
 
     init {
-        // Create menu item buttons first (below main button in z-order)
         for (data in menuData) {
             val btn = ImageView(context).apply {
                 setImageResource(data.iconRes)
                 setPadding(24, 24, 24, 24)
-                val bg = GradientDrawable().apply {
+                background = GradientDrawable().apply {
                     shape = GradientDrawable.OVAL
                     setColor(data.bgColor)
                 }
-                background = bg
                 elevation = 8f
                 visibility = View.GONE
                 alpha = 0f
                 scaleX = 0f
                 scaleY = 0f
             }
-            val lp = LayoutParams(itemButtonSize, itemButtonSize).apply {
+            addView(btn, LayoutParams(itemButtonSize, itemButtonSize).apply {
                 gravity = Gravity.CENTER
-            }
-            addView(btn, lp)
+            })
             menuItems.add(btn)
         }
 
-        // Set click listeners
         menuItems[0].setOnClickListener { callbacks.onLockClicked(); collapse() }
         menuItems[1].setOnClickListener { callbacks.onUnlockClicked(); collapse() }
         menuItems[2].setOnClickListener { callbacks.onMoveClicked(); collapse() }
         menuItems[3].setOnClickListener { callbacks.onPauseClicked(); collapse() }
 
-        // Create main floating button (on top)
         mainButton = ImageView(context).apply {
             setImageResource(R.drawable.ic_floating_button)
             setPadding(32, 32, 32, 32)
-            val bg = GradientDrawable().apply {
+            background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.parseColor("#f49d25"))
             }
-            background = bg
             elevation = 16f
         }
-        val mainLp = LayoutParams(mainButtonSize, mainButtonSize).apply {
+        addView(mainButton, LayoutParams(mainButtonSize, mainButtonSize).apply {
             gravity = Gravity.CENTER
-        }
-        addView(mainButton, mainLp)
+        })
 
-        mainButton.setOnClickListener { toggle() }
+        setupMainButtonTouch()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupMainButtonTouch() {
+        mainButton.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.rawX
+                    downY = event.rawY
+                    hasMoved = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - downX
+                    val dy = event.rawY - downY
+                    if (abs(dx) > touchSlop || abs(dy) > touchSlop || hasMoved) {
+                        hasMoved = true
+                        callbacks.onDrag(dx.toInt(), dy.toInt())
+                        downX = event.rawX
+                        downY = event.rawY
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (hasMoved) {
+                        callbacks.onDragEnd()
+                    } else {
+                        toggle()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    fun enableDragMode() {
+        isDragMode = true
     }
 
     private fun toggle() {
@@ -101,7 +141,7 @@ class RadialMenuView(
         val angleStep = (2.0 * Math.PI) / menuItems.size
 
         for ((index, item) in menuItems.withIndex()) {
-            val angle = index * angleStep - (Math.PI / 2.0) // start from top
+            val angle = index * angleStep - (Math.PI / 2.0)
             val targetX = (menuRadius * cos(angle)).toFloat()
             val targetY = (menuRadius * sin(angle)).toFloat()
 
@@ -113,20 +153,14 @@ class RadialMenuView(
             item.scaleY = 0f
 
             item.animate()
-                .translationX(targetX)
-                .translationY(targetY)
-                .alpha(1f)
-                .scaleX(1f)
-                .scaleY(1f)
+                .translationX(targetX).translationY(targetY)
+                .alpha(1f).scaleX(1f).scaleY(1f)
                 .setDuration(300)
                 .setStartDelay((index * 30).toLong())
                 .start()
         }
 
-        mainButton.animate()
-            .rotation(45f)
-            .setDuration(250)
-            .start()
+        mainButton.animate().rotation(45f).setDuration(250).start()
     }
 
     fun collapse() {
@@ -135,19 +169,13 @@ class RadialMenuView(
 
         for (item in menuItems) {
             item.animate()
-                .translationX(0f)
-                .translationY(0f)
-                .alpha(0f)
-                .scaleX(0f)
-                .scaleY(0f)
+                .translationX(0f).translationY(0f)
+                .alpha(0f).scaleX(0f).scaleY(0f)
                 .setDuration(200)
                 .withEndAction { item.visibility = View.GONE }
                 .start()
         }
 
-        mainButton.animate()
-            .rotation(0f)
-            .setDuration(200)
-            .start()
+        mainButton.animate().rotation(0f).setDuration(200).start()
     }
 }

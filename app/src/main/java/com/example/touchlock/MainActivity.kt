@@ -1,6 +1,9 @@
 package com.example.touchlock
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.widget.ImageView
@@ -12,62 +15,73 @@ import com.google.android.material.button.MaterialButton
 class MainActivity : AppCompatActivity() {
 
     private lateinit var permissionManager: PermissionManager
+    private lateinit var btnEnable: MaterialButton
     private var isServiceRunning = false
+
+    private val serviceStoppedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            isServiceRunning = false
+            btnEnable.text = getString(R.string.btn_enable_floating_menu)
+            btnEnable.setIconResource(R.drawable.ic_power)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         permissionManager = PermissionManager(this)
+        btnEnable = findViewById(R.id.btnEnable)
 
-        val btnEnable = findViewById<MaterialButton>(R.id.btnEnable)
-
-        // Set up quick settings display
         setupQuickSettings()
 
         btnEnable.setOnClickListener {
             if (isServiceRunning) {
                 stopFloatingService()
+                isServiceRunning = false
                 btnEnable.text = getString(R.string.btn_enable_floating_menu)
                 btnEnable.setIconResource(R.drawable.ic_power)
-                isServiceRunning = false
             } else {
                 if (permissionManager.hasOverlayPermission()) {
                     startFloatingService()
+                    isServiceRunning = true
                     btnEnable.text = getString(R.string.btn_disable_floating_menu)
                     btnEnable.setIconResource(R.drawable.ic_close)
-                    isServiceRunning = true
                 } else {
                     permissionManager.requestOverlayPermission(this)
                 }
             }
         }
+
+        // Register for service stop broadcasts
+        val filter = IntentFilter(FloatingMenuService.ACTION_SERVICE_STOPPED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(serviceStoppedReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(serviceStoppedReceiver, filter)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(serviceStoppedReceiver)
     }
 
     private fun setupQuickSettings() {
-        // Sensitivity card
-        val qsSensitivity = findViewById<android.view.View>(R.id.qsSensitivity)
-        qsSensitivity?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_fingerprint)
-        qsSensitivity?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_sensitivity)
-        qsSensitivity?.findViewById<TextView>(R.id.qsSubtitle)?.text = "Medium (0.5s)"
+        setupCard(R.id.qsSensitivity, R.drawable.ic_fingerprint, "Sensitivity", "Medium (0.5s)")
+        setupCard(R.id.qsHaptics, R.drawable.ic_fingerprint, "Haptics", "Enabled")
+        setupCard(R.id.qsOpacity, R.drawable.ic_fingerprint, "Opacity", "40% Alpha")
+        setupCard(R.id.qsAutoLock, R.drawable.ic_lock, "Auto-Lock", "Proximity only")
+    }
 
-        // Haptics card
-        val qsHaptics = findViewById<android.view.View>(R.id.qsHaptics)
-        qsHaptics?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_fingerprint)
-        qsHaptics?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_haptics)
-        qsHaptics?.findViewById<TextView>(R.id.qsSubtitle)?.text = "Enabled"
-
-        // Opacity card
-        val qsOpacity = findViewById<android.view.View>(R.id.qsOpacity)
-        qsOpacity?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_fingerprint)
-        qsOpacity?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_opacity)
-        qsOpacity?.findViewById<TextView>(R.id.qsSubtitle)?.text = "40% Alpha"
-
-        // Auto-Lock card
-        val qsAutoLock = findViewById<android.view.View>(R.id.qsAutoLock)
-        qsAutoLock?.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(R.drawable.ic_lock)
-        qsAutoLock?.findViewById<TextView>(R.id.qsTitle)?.text = getString(R.string.qs_auto_lock)
-        qsAutoLock?.findViewById<TextView>(R.id.qsSubtitle)?.text = "Proximity only"
+    private fun setupCard(id: Int, iconRes: Int, title: String, subtitle: String) {
+        val card = findViewById<android.view.View>(id) ?: return
+        card.findViewById<ImageView>(R.id.qsIcon)?.setImageResource(iconRes)
+        card.findViewById<TextView>(R.id.qsTitle)?.text = title
+        card.findViewById<TextView>(R.id.qsSubtitle)?.text = subtitle
+        card.setOnClickListener {
+            Toast.makeText(this, "$title setting tapped", Toast.LENGTH_SHORT).show()
+        }
     }
 
     @Deprecated("Deprecated in Java")
@@ -77,7 +91,6 @@ class MainActivity : AppCompatActivity() {
             if (permissionManager.hasOverlayPermission()) {
                 startFloatingService()
                 isServiceRunning = true
-                val btnEnable = findViewById<MaterialButton>(R.id.btnEnable)
                 btnEnable.text = getString(R.string.btn_disable_floating_menu)
                 btnEnable.setIconResource(R.drawable.ic_close)
             } else {
