@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Touch Lock</string>
+    <string name="start_touch_lock">Start Touch Lock</string>
+    <string name="stop_touch_lock">Stop Touch Lock</string>
+    <string name="instructions">Press Start to lock screen touches. Triple tap anywhere to unlock.</string>
+    <string name="notification_text">Touch Lock Active \u2013 Tap to return to app</string>
+</resources>
