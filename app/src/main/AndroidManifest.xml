@@ -25,7 +25,7 @@
         </activity>
 
         <service
-            android:name=".OverlayService"
+            android:name=".FloatingMenuService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse" />

@@ -15,6 +15,7 @@
         android:layout_marginBottom="32dp"/>
 
     <TextView
+        android:id="@+id/instructionsText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/instructions"
